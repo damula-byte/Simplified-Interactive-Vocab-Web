@@ -140,6 +140,16 @@ const app = {
                 }
             });
 
+            // Host: also listen to room-level state so host sees gameState changes (RESULTS, etc.)
+            utils.addListener(db.ref(`rooms/${state.roomId}`), 'value', (snap) => {
+                const r = snap.val();
+                if(!r) return;
+                if(r.gameState === 'RESULTS') {
+                    // Show results with the latest players snapshot
+                    this.showResults(r.players || {});
+                }
+            });
+
             utils.hideSpinner();
             utils.$('lobby-room-code').innerText = state.roomId;
             const link = `${window.location.origin}${window.location.pathname}?room=${state.roomId}`;
@@ -430,7 +440,15 @@ const app = {
                         }
                     } else {
                         if(utils.$('view-game').style.display !== 'block') this.showView('view-game');
-                        if (rData.questionData) gameModes.render(state.mode, rData.questionData);
+                        // Only re-render the current question when questionData actually changes.
+                        // This prevents re-rendering when unrelated player data (scores/answers)
+                        // updates the room and would otherwise wipe local inline feedback.
+                        const qDataStr = rData.questionData ? JSON.stringify(rData.questionData) : null;
+                        const lastQStr = state.lastQuestionData ? JSON.stringify(state.lastQuestionData) : null;
+                        if (qDataStr !== lastQStr) {
+                            state.lastQuestionData = rData.questionData || null;
+                            if (rData.questionData) gameModes.render(state.mode, rData.questionData);
+                        }
                     }
                 }
                 else if (rData.gameState === 'RESULTS') {
@@ -515,6 +533,19 @@ const app = {
             </div>
         `).join('');
 
+        // Make leaderboard clickable for HOST role
+        if(state.role === 'HOST') {
+            const items = document.querySelectorAll('#final-leaderboard .player-list-item');
+            items.forEach((item, i) => {
+                item.classList.add('clickable-student');
+                item.onclick = () => app.selectStudentForReview(i);
+            });
+            // Initially highlight first student
+            if(items.length > 0) {
+                items[0].classList.add('selected');
+            }
+        }
+
         // Actions & Message
         if(state.role === 'HOST') {
             utils.$('results-host-actions').classList.remove('hidden');
@@ -525,6 +556,11 @@ const app = {
             select.innerHTML = players.map((p, i) =>
                 `<option value="${i}">${p.name} (${p.score} pts, ${(p.answers || []).length} answers)</option>`
             ).join('');
+            
+            // Listen for dropdown changes to update leaderboard selection
+            select.addEventListener('change', (e) => {
+                app.selectStudentForReview(parseInt(e.target.value, 10));
+            });
 
             if(players.length > 0) {
                 utils.$('host-review-card').classList.remove('hidden');
@@ -559,6 +595,22 @@ const app = {
             card.classList.add('hidden');
             btn.innerText = '📝 Review My Answers';
         }
+    },
+
+    // Teacher: Click on a student in the leaderboard to view their answers
+    selectStudentForReview(index) {
+        if(state.role !== 'HOST') return;
+        
+        // Update dropdown to match clicked student
+        utils.$('host-review-select').value = index;
+        
+        // Update visual selection on leaderboard items
+        const items = document.querySelectorAll('#final-leaderboard .player-list-item.clickable-student');
+        items.forEach(item => item.classList.remove('selected'));
+        if(items[index]) items[index].classList.add('selected');
+        
+        // Update review content
+        this.renderAnswerReview(index, 'host-review-content');
     },
 
     // Render an answer-by-answer review into the given container.

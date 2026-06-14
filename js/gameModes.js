@@ -172,8 +172,27 @@ const gameModes = {
         utils.$('question-header').innerText = "Tap a word, then tap its definition (match them all)";
         const container = utils.$('game-content');
         
-        const words = utils.shuffle([...data.items]);
-        const defs = utils.shuffle([...data.items]);
+        // Shuffle once per question and cache order on the game-content container
+        const qIds = (data.items || []).map(i => i.id).join(',');
+        let wordOrder = null;
+        let defOrder = null;
+        try {
+            if (container.dataset.ddQids === qIds && container.dataset.ddWordOrder) {
+                wordOrder = JSON.parse(container.dataset.ddWordOrder);
+                defOrder = JSON.parse(container.dataset.ddDefOrder);
+            } else {
+                const shuffledWords = utils.shuffle([...data.items]);
+                const shuffledDefs = utils.shuffle([...data.items]);
+                wordOrder = shuffledWords.map(i => i.id);
+                defOrder = shuffledDefs.map(i => i.id);
+                container.dataset.ddQids = qIds;
+                container.dataset.ddWordOrder = JSON.stringify(wordOrder);
+                container.dataset.ddDefOrder = JSON.stringify(defOrder);
+            }
+        } catch (e) { console.warn(e); wordOrder = data.items.map(i=>i.id); defOrder = data.items.map(i=>i.id); }
+
+        const words = wordOrder.map(id => data.items.find(it => it.id === id));
+        const defs = defOrder.map(id => data.items.find(it => it.id === id));
 
         let html = `<div class="dd-container">
             <div class="dd-column" id="col-words">
@@ -236,9 +255,17 @@ const gameModes = {
 
                     if(selectedWord.dataset.id === el.dataset.id) {
                         // Correct - lock both items in green
+                        selectedWord.classList.remove('selected');
+                        el.classList.remove('selected');
                         selectedWord.classList.add('matched');
                         el.classList.add('matched');
+                        selectedWord.style.background = '#10b981';
+                        selectedWord.style.color = 'white';
+                        selectedWord.style.borderColor = '#10b981';
                         selectedWord.style.pointerEvents = 'none';
+                        el.style.background = '#10b981';
+                        el.style.color = 'white';
+                        el.style.borderColor = '#10b981';
                         el.style.pointerEvents = 'none';
                         points = 5;
                         isCorrect = true;
@@ -246,13 +273,20 @@ const gameModes = {
                         utils.$('dd-feedback').innerText = "Correct! +5";
                         utils.$('dd-feedback').style.color = 'var(--success)';
                     } else {
-                        // Wrong - lock the word in red, briefly flash the chosen def red
-                        // but leave the def available since it may match another word
+                        // Wrong - lock both word and definition permanently
+                        selectedWord.classList.remove('selected');
+                        el.classList.remove('selected');
                         selectedWord.classList.add('wrong-choice');
+                        selectedWord.style.background = '#ef4444';
+                        selectedWord.style.color = 'white';
+                        selectedWord.style.borderColor = '#ef4444';
                         selectedWord.style.pointerEvents = 'none';
                         el.classList.add('wrong-choice');
-                        setTimeout(() => el.classList.remove('wrong-choice'), 500);
-                        utils.$('dd-feedback').innerText = "Not quite!";
+                        el.style.background = '#ef4444';
+                        el.style.color = 'white';
+                        el.style.borderColor = '#ef4444';
+                        el.style.pointerEvents = 'none';
+                        utils.$('dd-feedback').innerText = "Not quite! (Locked)";
                         utils.$('dd-feedback').style.color = 'var(--danger)';
                     }
 
@@ -281,10 +315,22 @@ const gameModes = {
             cards.push({ id: item.id, text: item.w, type: 'word' });
             cards.push({ id: item.id, text: item.d, type: 'def' });
         });
-        cards = utils.shuffle(cards);
+        // Shuffle cards once per question and cache order on container
+        const matchQIds = (data.items || []).map(i => i.id).join(',');
+        let cardOrder = null;
+        try {
+            if (container.dataset.matchQids === matchQIds && container.dataset.matchOrder) {
+                cardOrder = JSON.parse(container.dataset.matchOrder);
+            } else {
+                const shuffled = utils.shuffle([...cards]);
+                cardOrder = shuffled.map(c => ({ id: c.id, text: c.text, type: c.type }));
+                container.dataset.matchQids = matchQIds;
+                container.dataset.matchOrder = JSON.stringify(cardOrder);
+            }
+        } catch (e) { console.warn(e); cardOrder = cards; }
 
         let html = `<div class="matching-grid">`;
-        cards.forEach((c, i) => {
+        cardOrder.forEach((c, i) => {
             html += `<div class="match-card" data-index="${i}" data-id="${c.id}">${c.text}</div>`;
         });
         html += `</div>`;
@@ -318,11 +364,21 @@ const gameModes = {
                             setTimeout(() => {
                                 el.classList.replace('selected', 'matched');
                                 selected.classList.replace('selected', 'matched');
+                                el.style.background = '#10b981';
+                                el.style.color = 'white';
+                                el.style.borderColor = '#10b981';
+                                el.style.pointerEvents = 'none';
+                                el.style.cursor = 'default';
+                                selected.style.background = '#10b981';
+                                selected.style.color = 'white';
+                                selected.style.borderColor = '#10b981';
+                                selected.style.pointerEvents = 'none';
+                                selected.style.cursor = 'default';
                                 selected = null; locked = false;
                                 app.updateScore(5);
                             }, 300);
                         } else {
-                            // Mismatch
+                            // Mismatch - show red, then reset for another attempt
                             app.recordAnswer({
                                 type: 'MATCHING',
                                 question: `Attempted pair: "${selected.innerText}" ↔ "${el.innerText}"`,
@@ -332,13 +388,23 @@ const gameModes = {
                                 points: -1
                             });
                             app.updateScore(-1);
-                            el.classList.add('shake');
-                            selected.classList.add('shake');
-                            setTimeout(() => {
-                                el.classList.remove('selected', 'shake');
-                                selected.classList.remove('selected', 'shake');
-                                selected = null; locked = false;
-                            }, 500);
+                            // Lock both cards permanently as wrong (match grid follows DnD locking behavior)
+                            el.classList.remove('selected');
+                            selected.classList.remove('selected');
+                            el.classList.add('wrong-match');
+                            selected.classList.add('wrong-match');
+                            el.style.background = '#ef4444';
+                            el.style.color = 'white';
+                            el.style.borderColor = '#ef4444';
+                            el.style.pointerEvents = 'none';
+                            el.style.cursor = 'not-allowed';
+                            selected.style.background = '#ef4444';
+                            selected.style.color = 'white';
+                            selected.style.borderColor = '#ef4444';
+                            selected.style.pointerEvents = 'none';
+                            selected.style.cursor = 'not-allowed';
+                            // clear selection and allow further interactions with other cards
+                            selected = null; locked = false;
                         }
                     }
                 };
@@ -428,8 +494,8 @@ const gameModes = {
                 <div style="font-size:1.1rem; margin-bottom:20px; padding: 16px; background:#f8fafc; border-radius:8px; border:2px solid var(--border);">${data.def}</div>
             </div>
             <div class="grid-2">
-                <button class="btn-primary" id="btn-true" style="background:var(--success);">✅ MATCH</button>
-                <button class="btn-danger" id="btn-false">❌ FAKE</button>
+                <button class="btn-primary" id="btn-true" style="background:var(--success);">✅ TRUE</button>
+                <button class="btn-danger" id="btn-false">❌ FALSE</button>
             </div>
         `;
         container.innerHTML = html;
@@ -461,8 +527,8 @@ const gameModes = {
                 app.recordAnswer({
                     type: 'SPEED_SPRINT',
                     question: `${data.word}: "${data.def}"`,
-                    yourAnswer: choseTrue ? '✅ MATCH' : '❌ FAKE',
-                    correctAnswer: data.isTrue ? '✅ MATCH' : '❌ FAKE',
+                    yourAnswer: choseTrue ? '✅ TRUE' : '❌ FALSE',
+                    correctAnswer: data.isTrue ? '✅ TRUE' : '❌ FALSE',
                     isCorrect: correct,
                     points
                 });
@@ -482,7 +548,7 @@ const gameModes = {
                         type: 'SPEED_SPRINT',
                         question: `${data.word}: "${data.def}"`,
                         yourAnswer: '(no answer - time out)',
-                        correctAnswer: data.isTrue ? '✅ MATCH' : '❌ FAKE',
+                        correctAnswer: data.isTrue ? '✅ TRUE' : '❌ FALSE',
                         isCorrect: false,
                         points: 0
                     });

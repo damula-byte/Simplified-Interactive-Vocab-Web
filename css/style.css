@@ -77,16 +77,17 @@
 
         .dd-container { display: flex; gap: 20px; }
         .dd-column { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        .dd-item { padding: 15px; background: var(--surface); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; user-select: none; transition: all 0.2s; min-height: 44px; display: flex; align-items: center; }
+        .dd-item { padding: 15px; background: var(--surface); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; user-select: none; transition: all 0.3s ease; min-height: 44px; display: flex; align-items: center; }
         .dd-item.selected { border-color: var(--primary); background: #e0e7ff; transform: scale(1.02); box-shadow: 0 0 0 2px var(--primary); }
-        .dd-item.matched { background: var(--success); color: white; border-color: var(--success); opacity: 1; pointer-events: none; }
-        .dd-item.wrong-choice { background: var(--danger); color: white; border-color: var(--danger); opacity: 1; pointer-events: none; }
+        .dd-item.matched { background: var(--success) !important; color: white !important; border-color: var(--success) !important; opacity: 1 !important; pointer-events: none !important; cursor: default !important; }
+        .dd-item.wrong-choice { background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; opacity: 1 !important; pointer-events: none !important; cursor: not-allowed !important; }
         @media (max-width: 600px) { .dd-container { flex-direction: column; } .dd-column { margin-bottom: 20px; } }
 
         .matching-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-        .match-card { padding: 20px 10px; text-align: center; background: var(--surface); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; min-height: 100px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; transition: all 0.2s; }
+        .match-card { padding: 20px 10px; text-align: center; background: var(--surface); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; min-height: 100px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; transition: all 0.3s ease; }
         .match-card.selected { background: #e0e7ff; border-color: var(--primary); transform: scale(1.05); box-shadow: 0 4px 10px rgba(79,70,229,0.2); }
-        .match-card.matched { visibility: hidden; opacity: 0; }
+        .match-card.matched { background: var(--success) !important; color: white !important; border-color: var(--success) !important; cursor: default !important; pointer-events: none !important; opacity: 1 !important; }
+        .match-card.wrong-match { background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; pointer-events: none !important; cursor: not-allowed !important; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .shake { animation: shake 0.4s; background: #fee2e2 !important; border-color: var(--danger) !important; }
 
@@ -95,6 +96,9 @@
 
         /* Leaderboard & Podium */
         .player-list-item { display: flex; justify-content: space-between; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+        .player-list-item.clickable-student { cursor: pointer; transition: all 0.2s; }
+        .player-list-item.clickable-student:hover { background: #f3f4f6 !important; border-color: var(--primary); }
+        .player-list-item.clickable-student.selected { background: #e0e7ff !important; border: 2px solid var(--primary); }
         .podium { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin: 40px 0; height: 180px; }
         .podium-step { display: flex; flex-direction: column; align-items: center; width: 30%; border-radius: 8px 8px 0 0; color: white; padding-top: 10px; font-weight: bold; text-align: center; transition: height 0.5s ease; position: relative; }
         .podium-name { position: absolute; top: -30px; color: var(--text-main); font-size: 0.9rem; width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

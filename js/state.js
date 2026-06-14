@@ -17,6 +17,7 @@ const state = {
     qIndex: 0,         // player's own progress index within questionSet
     answers: [],       // record of this player's answers for review at results screen
     lastResultsPlayers: [], // snapshot of all players (with answers) at the results screen
+    lastQuestionData: null, // keep last rendered questionData to avoid unnecessary re-renders
     timerInterval: null,
     listeners: []
 };
