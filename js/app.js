@@ -258,6 +258,17 @@ const app = {
         if(state.role !== 'HOST') return;
         if(confirm("Are you sure you want to end the game and show results?")) {
             await dbRefs.room.update({ gameState: 'RESULTS' });
+            // Fallback: some hosting environments (GitHub Pages) may delay
+            // realtime listeners firing for the host client. Immediately fetch
+            // the latest players snapshot and show results locally so the
+            // host sees the final screen reliably.
+            try {
+                const snap = await db.ref(`rooms/${state.roomId}/players`).once('value');
+                const playersObj = snap.exists() ? snap.val() : {};
+                this.showResults(playersObj);
+            } catch (e) {
+                console.warn('Failed to fetch players for results fallback', e);
+            }
         }
     },
 
