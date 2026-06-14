@@ -153,11 +153,11 @@
                     <button class="btn-primary" onclick="app.downloadCSV()">Download Scores (CSV)</button>
                     <button class="btn-secondary" onclick="app.playAgain()">Play Again (Same Room)</button>
                     <button class="btn-outline" onclick="app.returnToLobby()">Return to Lobby</button>
-                    <button class="btn-outline" style="grid-column: span 2;" onclick="location.reload()">🏠 Return Home (New Game Setup)</button>
+                    <button class="btn-outline" style="grid-column: span 2;" onclick="app.goHome()">🏠 Return Home (New Game Setup)</button>
                 </div>
                 <div id="results-player-actions" class="hidden">
                     <button class="btn-outline" onclick="app.toggleReview()" id="btn-toggle-review">📝 Review My Answers</button>
-                    <button class="btn-outline" onclick="location.reload()">🏠 Return Home</button>
+                    <button class="btn-outline" onclick="app.goHome()">🏠 Return Home</button>
                 </div>
             </div>
 

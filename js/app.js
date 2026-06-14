@@ -60,6 +60,16 @@ const app = {
         }, 300);
     },
 
+    // Navigate to landing page and remove any ?room= query param to avoid
+    // auto-join on reload (fixes GitHub Pages behavior where reload keeps query).
+    goHome() {
+        try {
+            // Remove query string without reloading
+            history.replaceState(null, '', window.location.pathname);
+        } catch (e) { /* ignore */ }
+        this.showView('view-landing');
+    },
+
     updateVocabCount() {
         const text = utils.$('host-vocab').value;
         const pairs = text.split('\n').filter(l => l.includes(':')).length;
