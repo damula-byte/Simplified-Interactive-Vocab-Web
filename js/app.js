@@ -434,9 +434,13 @@ const app = {
             // Listen to Room State
             utils.addListener(db.ref(`rooms/${state.roomId}`), 'value', snap => {
                 if(!snap.exists()) {
-                    utils.showError("The host has closed the room.");
-                    utils.clearListeners();
-                    setTimeout(() => location.reload(), 3000);
+                        utils.showError("The host has closed the room.");
+                            utils.clearListeners();
+                            // Clear reconnect session and return player to landing view
+                            setTimeout(() => {
+                                try { sessionStorage.removeItem('vocabMasterSession'); } catch (e) {}
+                                this.goHome();
+                            }, 2000);
                     return;
                 }
                 const rData = snap.val();
