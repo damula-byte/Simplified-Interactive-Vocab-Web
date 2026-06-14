@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IELTS Vocab Master</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header>
+        <div style="font-weight: 800; color: var(--primary); font-size: 1.2rem;">VocabMaster</div>
+        <div class="header-info">
+            <span id="hdr-room" class="badge hidden">Room: <span id="hdr-room-code">-</span></span>
+            <span id="hdr-name" class="badge hidden"></span>
+            <span id="hdr-score" class="badge badge-primary hidden">Score: <span id="hdr-score-val">0</span></span>
+        </div>
+    </header>
+
+    <main>
+        <div id="global-error" class="error-banner"></div>
+        <div id="global-spinner" class="spinner"></div>
+
+        <div id="view-warning" class="view card" style="border-left: 6px solid var(--danger);">
+            <h2>⚠️ Setup Required</h2>
+            <p>The host needs to configure Firebase before playing.</p>
+            <p>Please open <code>js/config.js</code> in a text editor, locate the <code>firebaseConfig</code> object near the top, and replace the placeholder values with your Firebase project credentials.</p>
+        </div>
+
+        <div id="view-landing" class="view">
+            <div class="card" style="text-align: center; padding: 40px 20px;">
+                <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: var(--primary);">IELTS Vocab Master</h1>
+                <p style="margin-bottom: 40px; font-size: 1.1rem;">Interactive real-time vocabulary practice.</p>
+                <div class="grid-2">
+                    <button class="btn-primary" onclick="app.showView('view-host-setup')" style="height: 60px; font-size: 1.2rem;">Create Game (Host)</button>
+                    <button class="btn-secondary" onclick="app.showView('view-join')" style="height: 60px; font-size: 1.2rem;">Join Game (Player)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-join" class="view card">
+            <h2>Join a Room</h2>
+            <p>Enter your details below to join the game.</p>
+            <input type="text" id="join-name" placeholder="Your Name" maxlength="20" aria-label="Your Name">
+            <input type="text" id="join-code" placeholder="6-Letter Room Code" maxlength="6" style="text-transform: uppercase;" aria-label="Room Code">
+            <button class="btn-primary" onclick="app.joinRoom()">Join Game</button>
+            <button class="btn-outline" onclick="app.showView('view-landing')">Back</button>
+        </div>
+
+        <div id="view-host-setup" class="view card">
+            <h2>Create Game Room</h2>
+            <p>Paste your vocabulary list below. <strong>Format: Word : Definition</strong> (one per line, minimum 4 pairs).</p>
+            <textarea id="host-vocab" placeholder="abandon : to leave a place, thing, or person, usually forever&#10;abundant : existing in large quantities"></textarea>
+            <p id="vocab-count" style="font-weight: 600; color: var(--primary); font-size: 0.9rem; margin-top: -10px;">Pairs detected: 0</p>
+            
+            <h3 style="margin-top: 20px;">Select Game Mode</h3>
+            <select id="host-mode">
+                <option value="MULTIPLE_CHOICE">Multiple Choice (Timed Quiz)</option>
+                <option value="DRAG_DROP">Drag & Drop (Tap to Match)</option>
+                <option value="MATCHING">Memory Grid (Click Pairs)</option>
+                <option value="FILL_BLANK">Fill in the Blank (Typing Challenge)</option>
+                <option value="SPEED_SPRINT">Speed Sprint (Rapid-Fire True/False)</option>
+            </select>
+            
+            <button class="btn-primary" onclick="app.createRoom()">Generate Room Code</button>
+            <button class="btn-outline" onclick="app.showView('view-landing')">Back</button>
+        </div>
+
+        <div id="view-host-lobby" class="view card">
+            <div style="text-align: center;">
+                <h2>Room Created!</h2>
+                <p>Tell your students to join using this code:</p>
+                <div class="room-code-display" id="lobby-room-code">------</div>
+                <p>Or share this link: <a href="#" id="lobby-room-link" target="_blank" style="word-break: break-all; color: var(--primary);"></a></p>
+            </div>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+            
+            <h3>Players (<span id="lobby-player-count">0</span>)</h3>
+            <div id="lobby-player-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;"></div>
+            
+            <button class="btn-primary" onclick="app.startGame()" id="btn-start-game" disabled>Start Game</button>
+
+            <div class="accordion" style="margin-top: 30px;">
+                <div class="accordion-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                    <span>How to Deploy & Secure Database</span>
+                    <span>▼</span>
+                </div>
+                <div class="accordion-content">
+                    <p><strong>1. Setup Firebase:</strong> Go to <a href="https://firebase.google.com" target="_blank">firebase.google.com</a>, create a project, and enable "Realtime Database".</p>
+                    <p><strong>2. Security Rules:</strong> In the Realtime Database "Rules" tab, paste this:</p>
+                    <pre style="background: #e5e7eb; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.8rem; margin-bottom: 10px;"><code>{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}</code></pre>
+                    <p><em>(Note: These are open rules for easy setup. For production, restrict writes to authenticated users).</em></p>
+                    <p><strong>3. Host anywhere:</strong> Upload the whole project folder (index.html, css/, and js/) to GitHub Pages, Netlify, or any static hosting. No server-side code needed - just keep the folder structure intact.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-player-lobby" class="view card" style="text-align: center; padding: 50px 20px;">
+            <div class="spinner" style="display: block; border-top-color: var(--secondary);"></div>
+            <h2>Waiting for host...</h2>
+            <p>You are in room <strong id="player-lobby-code"></strong>. The game will start soon.</p>
+        </div>
+
+        <div id="view-game" class="view">
+            <div id="host-game-controls" class="host-controls hidden">
+                <span style="font-weight: bold; color: var(--primary);">Host Dashboard</span>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-outline" style="padding: 6px 12px; min-height: 36px; border-color: var(--danger); color: var(--danger);" onclick="app.endGame()">End Game Early</button>
+                    <button class="btn-primary" style="padding: 6px 12px; min-height: 36px;" id="btn-next-q" onclick="app.nextQuestion()">Next Question</button>
+                </div>
+            </div>
+
+            <div id="host-self-paced-note" class="card hidden" style="background:#e0e7ff; text-align:center;">
+                <p style="margin:0; color: var(--primary); font-weight:600;">⏱️ Self-paced mode: students move through questions on their own. Watch their live progress below, and tap "End Game Early" when you want to wrap up.</p>
+            </div>
+            
+            <div class="card hidden" id="game-area">
+                <div id="game-progress" class="progress-bar hidden"><div class="progress-fill" id="game-progress-fill"></div></div>
+                <div id="game-timer" class="progress-bar hidden"><div class="progress-fill timer-bar" id="game-timer-fill"></div></div>
+                
+                <h3 id="question-header" style="text-align: center; margin-bottom: 20px;"></h3>
+                
+                <div id="game-content"></div>
+
+                <button class="btn-secondary hidden" id="btn-next-q-player" onclick="app.advanceQuestion()" style="margin-top:16px;">Next Question ➜</button>
+            </div>
+
+            <div id="host-live-stats" class="card hidden">
+                <h3 id="host-live-stats-title">Live Scores</h3>
+                <div id="live-player-list"></div>
+            </div>
+        </div>
+
+        <div id="view-results" class="view">
+            <div class="card" style="text-align: center;">
+                <h2>Game Over! 🏆</h2>
+                <p id="results-msg" style="font-size: 1.2rem; font-weight: bold; color: var(--primary);"></p>
+                
+                <div class="podium" id="podium-container">
+                    </div>
+
+                <div id="final-leaderboard" style="text-align: left; margin-bottom: 30px; max-height: 250px; overflow-y: auto;"></div>
+
+                <div id="results-host-actions" class="grid-2 hidden">
+                    <button class="btn-primary" onclick="app.downloadCSV()">Download Scores (CSV)</button>
+                    <button class="btn-secondary" onclick="app.playAgain()">Play Again (Same Room)</button>
+                    <button class="btn-outline" onclick="app.returnToLobby()">Return to Lobby</button>
+                    <button class="btn-outline" style="grid-column: span 2;" onclick="location.reload()">🏠 Return Home (New Game Setup)</button>
+                </div>
+                <div id="results-player-actions" class="hidden">
+                    <button class="btn-outline" onclick="app.toggleReview()" id="btn-toggle-review">📝 Review My Answers</button>
+                    <button class="btn-outline" onclick="location.reload()">🏠 Return Home</button>
+                </div>
+            </div>
+
+            <!-- Host: per-player answer review -->
+            <div id="host-review-card" class="card hidden">
+                <h3>👀 Review a Student's Answers</h3>
+                <p>Select a student to see exactly how they answered each question.</p>
+                <select id="host-review-select" onchange="app.renderAnswerReview(this.value, 'host-review-content')"></select>
+                <div id="host-review-content"></div>
+            </div>
+
+            <!-- Player: own answer review -->
+            <div id="player-review-card" class="card hidden">
+                <h3>📝 Your Answers</h3>
+                <div id="player-review-content"></div>
+            </div>
+        </div>
+    </main>
+
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/app.js"></script>
+<script src="js/gameModes.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
