@@ -67,7 +67,20 @@ const app = {
             // Remove query string without reloading
             history.replaceState(null, '', window.location.pathname);
         } catch (e) { /* ignore */ }
-        this.showView('view-landing');
+
+        // Clear any saved session to avoid auto-reconnect
+        try { sessionStorage.removeItem('vocabMasterSession'); } catch (e) {}
+
+        // Some hosts (GitHub Pages) are more reliable when we do a full
+        // navigation to the path without query params. Use location.replace
+        // so the back button doesn't return to the ?room= URL.
+        try {
+            location.replace(window.location.pathname);
+            return;
+        } catch (e) {
+            // Fallback to in-page navigation if replace fails
+            this.showView('view-landing');
+        }
     },
 
     updateVocabCount() {
